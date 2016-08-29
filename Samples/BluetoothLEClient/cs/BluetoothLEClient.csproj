@@ -103,6 +103,7 @@
       <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="DisplayHelpers.cs" />
+    <Compile Include="MetaWearBoard.cs" />
     <Compile Include="SampleConfiguration.cs" />
     <Compile Include="Scenario1_DiscoverServer.xaml.cs">
       <DependentUpon>Scenario1_DiscoverServer.xaml</DependentUpon>

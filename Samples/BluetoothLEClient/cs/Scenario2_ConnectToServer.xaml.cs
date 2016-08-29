@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Text;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
@@ -21,6 +22,9 @@ using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
+using MbientLab.MetaWear.Core;
+using static MbientLab.MetaWear.Functions;
+using GattCharacteristic = Windows.Devices.Bluetooth.GenericAttributeProfile.GattCharacteristic;
 
 namespace SDKTemplate
 {
@@ -41,6 +45,9 @@ namespace SDKTemplate
         private GattCharacteristic selectedCharacteristic;
         private bool isValueChangedHandlerRegistered = false;
         private GattPresentationFormat presentationFormat;
+
+        MetaWearBoard board;
+        private IntPtr cppBoard;
 
         public Scenario2_ConnectToServer()
         {
@@ -67,6 +74,19 @@ namespace SDKTemplate
             bluetoothLeDevice?.Dispose();
             bluetoothLeDevice = null;
         }
+        private FnVoidPtr accDataHandler = new FnVoidPtr(dataPtr =>
+        {
+            Data marshalledData = Marshal.PtrToStructure<Data>(dataPtr);
+            System.Diagnostics.Debug.WriteLine("Acc Samples " + Marshal.PtrToStructure<CartesianFloat>(marshalledData.value));
+            var message = "Acc Samples :" +
+                          Marshal
+                              .PtrToStructure
+                              <CartesianFloat>(
+                                  marshalledData.value);
+
+            //Send(message);
+
+        });
 
         private async void ConnectButton_Click()
         {
@@ -77,6 +97,18 @@ namespace SDKTemplate
             {
                 // BT_Code: BluetoothLEDevice.FromIdAsync must be called from a UI thread because it may prompt for consent.
                 bluetoothLeDevice = await BluetoothLEDevice.FromIdAsync(rootPage.SelectedBleDeviceId);
+
+                //Victor add device
+                var board = MetaWearBoard.getMetaWearBoardInstance(bluetoothLeDevice);
+                board.Initialize();
+                cppBoard = board.cppBoard; 
+
+
+                IntPtr accSignal = mbl_mw_acc_get_acceleration_data_signal(cppBoard);
+                mbl_mw_datasignal_subscribe(accSignal, accDataHandler);
+                mbl_mw_acc_enable_acceleration_sampling(cppBoard);
+                mbl_mw_acc_start(cppBoard);
+
             }
             catch (Exception ex) when ((uint)ex.HResult == 0x800710df)
             {
